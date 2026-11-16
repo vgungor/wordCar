@@ -1,0 +1,63 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+a { color: #93c5fd; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 18px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+header h1 { font-size: 22px; margin: 0; }
+.muted { color: #94a3b8; font-size: 14px; }
+.card { background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.hidden { display: none !important; }
+button { background: #3b82f6; color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-size: 15px; cursor: pointer; }
+button:hover { filter: brightness(1.1); }
+button.ghost { background: #334155; }
+button.green { background: #16a34a; }
+button.red { background: #dc2626; }
+button.orange { background: #d97706; }
+input, textarea { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 9px 11px; font-size: 15px; font-family: inherit; }
+input:focus, textarea:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+
+/* Giriş */
+.login { max-width: 360px; margin: 60px auto; text-align: center; }
+.login input { width: 100%; margin: 12px 0; font-size: 18px; text-align: center; }
+.login button { width: 100%; font-size: 17px; }
+.err { color: #f87171; min-height: 20px; font-size: 14px; }
+
+/* Metin */
+.textbox { font-family: "Consolas", "Courier New", monospace; font-size: 22px; line-height: 1.6; letter-spacing: .5px; user-select: none; cursor: text; word-wrap: break-word; }
+.textbox .ok { color: #4ade80; }
+.textbox .bad { color: #fff; background: #dc2626; border-radius: 2px; }
+.textbox .cur { border-bottom: 3px solid #facc15; color: #fff; }
+.textbox .rest { color: #64748b; }
+#typeInput { width: 100%; margin-top: 12px; font-family: "Consolas", monospace; font-size: 20px; resize: none; height: 56px; }
+#typeInput:disabled { opacity: .5; }
+
+.stats { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 10px; font-size: 15px; }
+.stats b { font-size: 20px; color: #fff; }
+#statusLine { font-size: 18px; font-weight: 600; }
+
+/* Pist */
+#track { width: 100%; display: block; border-radius: 10px; }
+
+/* Tablo */
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #334155; }
+th { color: #94a3b8; font-weight: 500; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+.on { color: #4ade80; } .off { color: #64748b; }
+
+/* Admin */
+.grid { display: grid; grid-template-columns: 30px 1fr 1fr auto 70px; gap: 8px; align-items: center; }
+.grid input { width: 100%; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+#adminText { width: 100%; min-height: 110px; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: #fff; padding: 10px 16px; border-radius: 8px; opacity: 0; transition: opacity .3s; }
+.toast.show { opacity: 1; }
+.toast.bad { background: #dc2626; }
+
+/* Statik sürüm ekleri */
+.roomcard { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.roomcode { font-family: "Consolas", monospace; font-size: 44px; font-weight: 800; letter-spacing: 6px; color: #facc15; }
+details summary { cursor: pointer; font-size: 17px; }
+h4 { margin: 18px 0 8px; }
+.on { color: #4ade80; } .off { color: #f87171; }
+.textbox { max-height: 260px; overflow-y: auto; }

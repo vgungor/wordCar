@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yazma Yarışı</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏁 Yazma Yarışı</h1>
+    <div><span id="whoami" class="muted"></span> <button id="logoutBtn" class="ghost hidden">Çıkış</button></div>
+  </header>
+
+  <div id="loginView" class="card login">
+    <h2>Yarışa katıl</h2>
+    <form id="loginForm">
+      <input id="codeInp" placeholder="Oda kodu" autocomplete="off" maxlength="8" style="text-transform:uppercase">
+      <input id="passInp" type="password" placeholder="Şifre" autocomplete="off">
+      <button type="submit" id="joinBtn">Giriş</button>
+    </form>
+    <div id="loginErr" class="err"></div>
+    <p class="muted" style="margin-top:22px">Öğretmen misiniz? <a href="ogretmen.html">Yarış oluşturun</a></p>
+  </div>
+
+  <div id="gameView" class="hidden">
+    <div class="card">
+      <div id="statusLine">Bağlanıyor…</div>
+      <div id="textBox" class="textbox" style="margin-top:10px"></div>
+      <textarea id="typeInput" disabled spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Yarış başlayınca buraya yazın…"></textarea>
+      <div class="stats">
+        <div>Süre<br><b id="stTime">0.0 sn</b></div>
+        <div>Hız<br><b id="stWpm">0</b> <span class="muted">kel/dk</span></div>
+        <div>İlerleme<br><b id="stPct">%0</b></div>
+        <div>Hata<br><b id="stErr">0</b></div>
+      </div>
+    </div>
+    <div class="card" style="padding:10px"><canvas id="track"></canvas></div>
+    <div class="card">
+      <h3 style="margin-top:0">Sıralama</h3>
+      <table><thead><tr><th>#</th><th>Oyuncu</th><th>Durum</th><th>İlerleme</th><th>Süre</th><th>Hız</th><th>Doğruluk</th></tr></thead>
+      <tbody id="results"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script src="lib/peerjs.min.js"></script>
+<script src="common.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

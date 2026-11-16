@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yazma Yarışı — Öğretmen</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚙️ Yazma Yarışı — Öğretmen ekranı</h1>
+    <span id="netStatus" class="muted">Bağlanıyor…</span>
+  </header>
+
+  <div class="card roomcard">
+    <div>
+      <div class="muted">Oda kodu</div>
+      <div id="roomCode" class="roomcode">——</div>
+    </div>
+    <div class="muted" style="flex:1">
+      Öğrenciler <b id="joinUrl"></b> adresine girip bu oda kodunu ve kendilerine verdiğiniz şifreyi yazar.<br>
+      <b>Bu sekmeyi kapatmayın</b> — yarış bu tarayıcıda yürütülüyor.
+    </div>
+    <button id="newCodeBtn" class="ghost">Yeni oda kodu</button>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div id="raceStatus" style="font-size:18px;font-weight:600"></div>
+      <div class="btns">
+        <button id="startBtn" class="green">▶ Yarışı başlat</button>
+        <button id="stopBtn" class="orange">⏹ Bitir</button>
+        <button id="resetBtn" class="red">↺ Sıfırla</button>
+      </div>
+    </div>
+    <div id="textBox" class="textbox" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" style="padding:10px"><canvas id="track"></canvas></div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Sıralama</h3>
+    <table><thead><tr><th>#</th><th>Oyuncu</th><th>Durum</th><th>İlerleme</th><th>Süre</th><th>Hız</th><th>Doğruluk</th></tr></thead>
+    <tbody id="results"></tbody></table>
+  </div>
+
+  <details class="card" id="settings" open>
+    <summary><b>Oyuncular, şifreler ve metin</b></summary>
+    <p class="muted">Şifresi boş olan şerit kapalıdır. Bir oyuncunun şifresini değiştirirseniz bağlantısı kesilir.</p>
+    <div class="grid" id="playerRows"></div>
+    <div class="btns" style="margin-top:10px"><button id="genAllBtn" class="ghost">Boş şifreleri üret</button></div>
+
+    <h4>Yazılacak metin <span id="wc" class="muted"></span></h4>
+    <textarea id="adminText"></textarea>
+    <div class="btns" style="margin-top:10px">
+      <button id="randomBtn" class="ghost">🎲 Rastgele metin</button>
+      <button id="saveBtn">💾 Kaydet</button>
+    </div>
+  </details>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="lib/peerjs.min.js"></script>
+<script src="texts.js"></script>
+<script src="common.js"></script>
+<script src="host.js"></script>
+</body>
+</html>
