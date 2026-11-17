@@ -1,5 +1,5 @@
 // ============ Öğrenci ekranı ============
-let peer = null, conn = null, mySlot = null, S = null;
+let net = null, hostId = null, connected = false, mySlot = null, S = null;
 let raceId = null, localStart = null;          // localStart: yarışın başladığı an (bu bilgisayarın saatiyle, ms)
 let myPos = 0, myErrors = 0, prevLen = 0, lastSent = -1, myFinish = null;
 let creds = null, joining = false;
@@ -20,33 +20,27 @@ function join() {
   joining = true;
   $('loginErr').textContent = ''; $('joinBtn').textContent = 'Bağlanıyor…';
   cleanup();
-  const fail = msg => { joining = false; $('joinBtn').textContent = 'Giriş'; $('loginErr').textContent = msg; cleanup(); toLogin(); };
-  const timer = setTimeout(() => fail('Odaya ulaşılamadı. Oda kodunu kontrol edin; öğretmenin sayfası açık olmalı.'), 15000);
+  const fail = msg => { clearTimeout(timer); joining = false; $('joinBtn').textContent = 'Giriş'; $('loginErr').textContent = msg; cleanup(); toLogin(); };
+  const timer = setTimeout(() => fail('Odaya ulaşılamadı. Oda kodunu kontrol edin; öğretmenin sayfası açık olmalı.'), 30000);
 
-  peer = new Peer(peerOptions());
-  peer.on('error', err => {
-    clearTimeout(timer);
-    if (err.type === 'peer-unavailable') fail('Bu kodla açık bir oda bulunamadı.');
-    else fail('Bağlantı hatası (' + err.type + '). Tekrar deneyin.');
+  net = openRoom(creds.code);
+  net.onMessage((msg, id) => {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.t === 'hello') { hostId = id; net.send({ t: 'login', pass: creds.pass }, id); return; }   // öğretmen kendini tanıttı
+    if (id !== hostId) return;                                                                      // yalnızca öğretmeni dinle
+    if (msg.t === 'welcome') { clearTimeout(timer); joining = false; $('joinBtn').textContent = 'Giriş'; mySlot = msg.slot; connected = true; toGame(); }
+    else if (msg.t === 'error') fail(msg.msg);
+    else if (msg.t === 'kicked') { mySlot = null; creds = null; fail(msg.msg); }
+    else if (msg.t === 'state') onState(msg);
   });
-  peer.on('open', () => {
-    conn = peer.connect(PEER_PREFIX + creds.code, { reliable: true });
-    conn.on('open', () => send({ t: 'login', pass: creds.pass }));
-    conn.on('data', msg => {
-      if (msg.t === 'welcome') { clearTimeout(timer); joining = false; $('joinBtn').textContent = 'Giriş'; mySlot = msg.slot; toGame(); }
-      else if (msg.t === 'error') { clearTimeout(timer); fail(msg.msg); }
-      else if (msg.t === 'kicked') { mySlot = null; creds = null; fail(msg.msg); }
-      else if (msg.t === 'state') onState(msg);
-    });
-    conn.on('close', () => {
-      if (mySlot === null) return;
-      $('statusLine').textContent = '⚠️ Bağlantı koptu, yeniden bağlanılıyor…';
-      setTimeout(() => { if (creds && !joining) join(); }, 1500);
-    });
+  net.onLeave(id => {
+    if (id !== hostId || mySlot === null) return;
+    connected = false;
+    $('statusLine').textContent = '⚠️ Öğretmenle bağlantı koptu, yeniden bağlanması bekleniyor…';
   });
 }
-function cleanup() { try { conn && conn.close(); } catch (e) {} try { peer && peer.destroy(); } catch (e) {} conn = null; peer = null; }
-function send(m) { try { if (conn && conn.open) conn.send(m); } catch (e) {} }
+function cleanup() { if (net) net.leave(); net = null; hostId = null; connected = false; }
+function send(m) { if (net && hostId && connected) net.send(m, hostId); }
 function toLogin() { show('loginView'); hide('gameView'); hide('logoutBtn'); $('whoami').textContent = ''; }
 function toGame() { hide('loginView'); show('gameView'); show('logoutBtn'); }
 $('logoutBtn').onclick = () => { creds = null; mySlot = null; cleanup(); raceId = null; toLogin(); };
@@ -117,7 +111,7 @@ function frame() {
   else if (S.status === 'running') msg = myFinish != null ? '🏁 Bitirdin! Diğerleri bekleniyor…' : '🟢 YAZ!';
   else msg = '🏆 Yarış bitti';
   if ($('statusLine').textContent !== msg && !$('statusLine').textContent.startsWith('⚠️')) $('statusLine').textContent = msg;
-  else if ($('statusLine').textContent.startsWith('⚠️') && conn && conn.open) $('statusLine').textContent = msg;
+  else if ($('statusLine').textContent.startsWith('⚠️') && connected) $('statusLine').textContent = msg;
 
   const shownT = myFinish != null ? myFinish : Math.max(0, t);
   $('stTime').textContent = fmt(shownT);

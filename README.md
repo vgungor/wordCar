@@ -5,8 +5,8 @@ Sadece HTML, CSS ve JavaScript. Sunucu ya da veritabanı gerekmez. 5 öğrenci a
 ## Nasıl çalışır?
 - **Öğretmen** `ogretmen.html` sayfasını açar. Bu sekme yarışın "sunucusu" olur, ekranda bir **oda kodu** görünür.
 - **Öğrenciler** `index.html` sayfasına girip oda kodunu ve öğretmenin verdiği **şifreyi** yazar.
-- Bağlantı, tarayıcılar arasında doğrudan kurulur (WebRTC, [PeerJS](https://peerjs.com) kütüphanesi). Eşleşme için PeerJS'in ücretsiz genel sunucusu kullanılır; veri o sunucuda saklanmaz.
-- Öğretmen sekmesi kapanırsa yarış biter. Öğretmen ekranını projeksiyona yansıtabilirsiniz.
+- Bağlantı, tarayıcılar arasında doğrudan kurulur (WebRTC, [Trystero](https://github.com/dmotz/trystero) kütüphanesi). Tarayıcıların birbirini bulması için aynı anda birkaç açık Nostr sunucusu kullanılır. Bunlardan biri çalışmasa da diğerleri üzerinden bağlantı kurulur. Hesap ya da API anahtarı gerekmez; eşleşme bilgileri oda koduyla şifrelenir.
+- Öğretmen sekmesi kapanırsa yarış durur. Sayfa yenilenirse aynı oda yeniden açılır ve öğrenciler otomatik olarak geri bağlanır. Öğretmen ekranını projeksiyona yansıtabilirsiniz.
 
 ## GitHub Pages'te yayınlama
 1. GitHub'da yeni bir depo açın (ör. `yazma-yarisi`) ve bu klasördeki tüm dosyaları yükleyin.
@@ -31,5 +31,6 @@ Sadece HTML, CSS ve JavaScript. Sunucu ya da veritabanı gerekmez. 5 öğrenci a
 `texts.js` dosyasındaki listeye istediğiniz kadar paragraf ekleyebilirsiniz (50–100 kelime önerilir). Öğretmen ekranındaki metin kutusuna elle metin de yazılabilir.
 
 ## Bilinen sınırlamalar
-- Bazı okul/kurum ağları WebRTC bağlantılarını engelleyebilir. Öğrenci "Odaya ulaşılamadı" görürse aynı Wi-Fi'ye bağlanmayı ya da mobil veriyi deneyin.
-- Kendi PeerJS sunucunuzu kullanmak isterseniz iki sayfayı da `?server=adres:port` ile açın.
+- Bağlanmak 5–20 saniye sürebilir.
+- Bazı okul/kurum ağları WebRTC bağlantılarını veya Nostr sunucularını engelleyebilir. Öğrenci "Odaya ulaşılamadı" görürse aynı Wi-Fi'ye bağlanmayı ya da mobil veriyi deneyin.
+- Belirli Nostr sunucularını kullanmak isterseniz iki sayfayı da `?relay=wss://sunucu1,wss://sunucu2` ile açın.

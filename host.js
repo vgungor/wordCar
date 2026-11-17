@@ -1,7 +1,7 @@
 // ============ Öğretmen (host) — yarışın "sunucusu" bu sekmedir ============
 const STORE = 'yazmayarisi-host';
-const conns = new Map();          // slot -> DataConnection
-let peer = null, retries = 0, dirty = false;
+const conns = new Map();          // slot -> peerId
+let dirty = false;
 
 // ---------- Durum ----------
 function freshState() {
@@ -17,7 +17,6 @@ function freshState() {
 let S;
 try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) {}
 if (!S || !Array.isArray(S.players) || S.players.length !== MAX_PLAYERS) S = freshState();
-if (S.status === 'running') { S.status = 'waiting'; resetProgress(); }   // sayfa yenilendiyse yarış iptal
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) {} };
 save();
 
@@ -29,7 +28,7 @@ const elapsedMs = () => S.status === 'running' ? Date.now() - S.startAt : S.stat
 function publicPlayers() {
   return S.players.map((p, i) => ({
     slot: i, name: p.name, color: p.color, pos: p.pos, errors: p.errors, finish: p.finish,
-    active: active(p), online: !!(conns.get(i) && conns.get(i).open),
+    active: active(p), online: isOnline(i),
   }));
 }
 
@@ -40,53 +39,48 @@ function checkFinished() {
 }
 
 // ---------- Ağ ----------
-function startPeer() {
-  if (peer) { try { peer.destroy(); } catch (e) {} }
+let net = null;
+const peers = new Set();          // odadaki tüm eşler (peerId)
+const slotOf = new Map();         // peerId -> slot
+const isOnline = i => conns.has(i) && peers.has(conns.get(i));
+
+function startNet() {
+  if (net) net.leave();
+  peers.clear(); conns.clear(); slotOf.clear();
   $('roomCode').textContent = S.code;
-  setNet('Oda açılıyor…');
-  peer = new Peer(PEER_PREFIX + S.code, peerOptions());
-  peer.on('open', () => { retries = 0; setNet('🟢 Oda açık — öğrenciler bağlanabilir', 'on'); });
-  peer.on('connection', conn => {
-    conn.on('data', msg => onMessage(conn, msg));
-    conn.on('close', () => { for (const [s, c] of conns) if (c === conn) conns.delete(s); });
-    conn.on('error', () => {});
-  });
-  peer.on('disconnected', () => { setNet('Bağlantı koptu, yeniden bağlanılıyor…'); setTimeout(() => { if (peer && !peer.destroyed) peer.reconnect(); }, 1500); });
-  peer.on('error', err => {
-    if (err.type === 'unavailable-id' && retries < 10) {
-      retries++; setNet(`Oda kodu önceki oturumdan hâlâ kayıtlı, bekleniyor (${retries})…`);
-      setTimeout(startPeer, 3000);
-    } else if (err.type === 'unavailable-id') {
-      setNet('Bu oda kodu kullanılamıyor — "Yeni oda kodu"na basın.', 'off');
-    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
-      setNet('Sunucuya ulaşılamıyor, yeniden deneniyor…', 'off'); setTimeout(startPeer, 4000);
-    } else if (err.type !== 'peer-unavailable') {
-      console.warn(err); setNet('Hata: ' + err.type, 'off');
-    }
-  });
+  setNet('🟢 Oda açık — öğrenciler bağlanabilir', 'on');
+  net = openRoom(S.code);
+  net.onJoin(id => { peers.add(id); send(id, { t: 'hello' }); });
+  net.onLeave(id => { peers.delete(id); });
+  net.onMessage((msg, id) => onMessage(id, msg));
 }
 function setNet(msg, cls) { const el = $('netStatus'); el.textContent = msg; el.className = cls || 'muted'; }
+function send(id, msg) { if (net && id) net.send(msg, id); }
+function kick(slot, msg) {
+  const id = conns.get(slot);
+  if (!id) return;
+  send(id, { t: 'kicked', msg });
+  conns.delete(slot); slotOf.delete(id);
+}
 
-function send(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) {} }
-
-function onMessage(conn, msg) {
+function onMessage(id, msg) {
   if (!msg || typeof msg !== 'object') return;
   if (msg.t === 'login') {
     const pass = String(msg.pass || '').trim();
     const slot = S.players.findIndex(p => active(p) && p.pass === pass);
-    if (slot < 0) { send(conn, { t: 'error', msg: 'Şifre hatalı' }); setTimeout(() => conn.close(), 500); return; }
+    if (slot < 0) { send(id, { t: 'error', msg: 'Şifre hatalı' }); return; }
     const old = conns.get(slot);
-    if (old && old !== conn) { send(old, { t: 'kicked', msg: 'Bu şifreyle başka bir yerden giriş yapıldı.' }); setTimeout(() => old.close(), 300); }
-    conns.set(slot, conn);
-    conn.slot = slot;
+    if (old && old !== id && peers.has(old)) kick(slot, 'Bu şifreyle başka bir yerden giriş yapıldı.');
+    if (slotOf.has(id) && slotOf.get(id) !== slot) conns.delete(slotOf.get(id));
+    conns.set(slot, id); slotOf.set(id, slot);
     if (S.status === 'running') S.players[slot].inRace = true;   // yarış sırasında katılan da sayılır
-    send(conn, { t: 'welcome', slot });
+    send(id, { t: 'welcome', slot });
     broadcast();
     return;
   }
   if (msg.t === 'progress') {
-    const slot = conn.slot;
-    if (slot == null || conns.get(slot) !== conn) return;
+    const slot = slotOf.get(id);
+    if (slot == null || conns.get(slot) !== id) return;
     if (msg.raceId !== S.raceId || S.status !== 'running') return;
     const now = Date.now();
     if (now < S.startAt) return;
@@ -104,7 +98,8 @@ function onMessage(conn, msg) {
 
 function broadcast() {
   const msg = { t: 'state', raceId: S.raceId, text: S.text, status: S.status, elapsed: elapsedMs(), players: publicPlayers() };
-  for (const c of conns.values()) send(c, msg);
+  const ids = [...conns.values()].filter(id => peers.has(id));
+  if (ids.length) net.send(msg, ids);
 }
 setInterval(broadcast, 250);
 
@@ -113,7 +108,7 @@ $('startBtn').onclick = () => {
   if (dirty && !confirm('Kaydedilmemiş değişiklikler var. Kaydetmeden başlatılsın mı?')) return;
   if (!S.players.some(active)) return toast('Önce en az bir oyuncuya şifre verin', true);
   resetProgress();
-  S.players.forEach((p, i) => { p.inRace = active(p) && !!(conns.get(i) && conns.get(i).open); });
+  S.players.forEach((p, i) => { p.inRace = active(p) && isOnline(i); });
   S.status = 'running'; S.startAt = Date.now() + COUNTDOWN_MS; S.raceId++; save(); broadcast();
   $('settings').open = false;
 };
@@ -121,8 +116,8 @@ $('stopBtn').onclick = () => { if (S.status === 'running') { S.status = 'finishe
 $('resetBtn').onclick = () => { if (!confirm('İlerlemeler sıfırlansın mı?')) return; resetProgress(); S.status = 'waiting'; S.raceId++; save(); broadcast(); };
 $('newCodeBtn').onclick = () => {
   if (S.status === 'running' && !confirm('Yarış sürüyor. Yeni oda açılırsa öğrencilerin yeniden girmesi gerekir. Devam edilsin mi?')) return;
-  for (const c of conns.values()) send(c, { t: 'kicked', msg: 'Öğretmen yeni bir oda açtı.' });
-  conns.clear(); S.code = randomCode(5); S.status = 'waiting'; resetProgress(); S.raceId++; save(); retries = 0; startPeer();
+  for (const i of [...conns.keys()]) kick(i, 'Öğretmen yeni bir oda açtı.');
+  S.code = randomCode(5); S.status = 'waiting'; resetProgress(); S.raceId++; save(); startNet();
 };
 
 // ---------- Ayarlar formu ----------
@@ -161,7 +156,7 @@ $('saveBtn').onclick = () => {
   if (new Set(pw).size !== pw.length) return toast('Her oyuncunun şifresi farklı olmalı', true);
   rows.forEach((r, i) => {
     const p = S.players[i];
-    if (p.pass !== r.pass && conns.get(i)) { send(conns.get(i), { t: 'kicked', msg: 'Şifreniz değiştirildi.' }); const c = conns.get(i); setTimeout(() => c.close(), 300); conns.delete(i); }
+    if (p.pass !== r.pass) kick(i, 'Şifreniz değiştirildi.');
     p.name = r.name; p.pass = r.pass;
   });
   if (text !== S.text) { S.text = text; S.status = 'waiting'; resetProgress(); S.raceId++; }
@@ -194,5 +189,5 @@ setInterval(() => {
 
 $('joinUrl').textContent = new URL('index.html', location.href).href.replace(/\?.*$/, '');
 loadForm();
-startPeer();
+startNet();
 requestAnimationFrame(frame);

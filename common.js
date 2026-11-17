@@ -1,17 +1,26 @@
 // ============ Ortak yardımcılar, pist çizimi, sıralama ============
 const $ = id => document.getElementById(id);
-const PEER_PREFIX = 'yazmayarisi-tr-';
+const APP_ID = 'yazmayarisi-tr-ghpages-v2';
 const MAX_PLAYERS = 5;
 const COUNTDOWN_MS = 5000;
 const MAX_CHARS_PER_SEC = 25;
 const COLORS = ['#e63946', '#2a9d8f', '#f4a261', '#457b9d', '#9b5de5'];
 
-// Test/özel sunucu için: ?server=host:port (varsayılan: PeerJS'in ücretsiz bulut sunucusu)
-function peerOptions() {
-  const sv = new URLSearchParams(location.search).get('server');
-  if (!sv) return { debug: 1 };
-  const [host, port] = sv.split(':');
-  return { host, port: +port || 9000, path: '/', secure: false, debug: 1 };
+// ---------- Ağ: Trystero (eşleştirme birden çok açık Nostr sunucusu üzerinden) ----------
+// Test/özel sunucu için: ?relay=wss://adres (virgülle birden fazla verilebilir)
+function openRoom(code) {
+  const cfg = { appId: APP_ID, password: 'oda-' + code, identity: 'none' };
+  const rel = new URLSearchParams(location.search).get('relay');
+  if (rel) cfg.relayConfig = { urls: rel.split(','), redundancy: rel.split(',').length };
+  const room = Trystero.joinRoom(cfg, 'oda-' + code);
+  const act = room.makeAction('msg');
+  return {
+    send: (msg, target) => act.send(msg, target ? { target } : undefined).catch(() => {}),
+    onMessage: h => act.onMessage((data, ctx) => h(data, ctx.peerId)),
+    onJoin: h => room.onPeerJoin(ctx => h(ctx.peerId)),
+    onLeave: h => room.onPeerLeave(ctx => h(ctx.peerId)),
+    leave: () => { try { room.leave(); } catch (e) {} },
+  };
 }
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
